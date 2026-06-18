@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guinea Pig ER Course — Build Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --veg-red:#2b6cb0; --veg-red-d:#235a92;
+    --ink:#1a1a1a;
+    --gray:#6b6b6b;
+    --line:#e2e2e2;
+    --done-bg:#edf4e8; --done-fg:#4a7a36; --done-bd:#bcd6a8;
+    --bg-soft:#fafafa;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:#fff;font-family:'Roboto',Arial,Montserrat,sans-serif;color:var(--ink);}
+  .wrap{max-width:1200px;margin:0 auto;padding:32px 24px 64px;}
+  h1{font-size:34px;font-weight:700;margin:0 0 4px;}
+  .sub{color:var(--gray);font-size:16px;margin:0 0 24px;}
+  .topbar{border-bottom:4px solid var(--veg-red);padding-bottom:14px;margin-bottom:24px;}
+  .mvp-badge{display:inline-block;font-size:14px;font-weight:700;letter-spacing:.04em;background:#fff;color:var(--veg-red);border:1.5px solid var(--veg-red);border-radius:20px;padding:2px 12px;margin-left:12px;vertical-align:middle;}
+
+  .summary{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:22px;}
+  .stat{flex:1;min-width:150px;background:var(--bg-soft);border:1px solid var(--line);border-radius:12px;padding:14px 18px;box-shadow:0 1px 2px rgba(0,0,0,.04);}
+  .stat .num{font-size:28px;font-weight:700;}
+  .stat .lbl{font-size:13px;color:var(--gray);font-weight:500;}
+  .stat.html .num{color:var(--veg-red);}
+
+  .progress{height:10px;border-radius:6px;background:#eee;overflow:hidden;margin:0 0 8px;}
+  .prog-label{display:flex;justify-content:space-between;font-size:13px;color:var(--gray);font-weight:500;margin:0 0 6px;}
+  .prog-note{font-size:12px;color:var(--gray);margin:0 0 26px;}
+  .progress .bar{height:100%;background:var(--veg-red);width:0;transition:width .3s ease;}
+
+  .section{margin-bottom:22px;border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.05);}
+  .section-head{background:var(--veg-red);color:#fff;padding:12px 18px;display:flex;justify-content:space-between;align-items:center;}
+  .section-head .name{font-size:18px;font-weight:700;}
+  .section-head .count{font-size:13px;font-weight:500;opacity:.92;}
+
+  table{width:100%;border-collapse:collapse;}
+  thead th{font-size:12px;font-weight:500;color:var(--gray);text-align:center;padding:10px 6px;border-bottom:1px solid var(--line);}
+  thead th.lesson{text-align:left;padding-left:18px;}
+  tbody td{padding:11px 6px;border-bottom:1px solid var(--line);text-align:center;font-size:14px;}
+  tbody tr:last-child td{border-bottom:none;}
+  tbody tr:nth-child(even){background:var(--bg-soft);}
+  td.lesson{text-align:left;padding-left:18px;font-size:15px;}
+
+  /* checkbox */
+  .cb{appearance:none;-webkit-appearance:none;width:22px;height:22px;border:2px solid #c4c4c4;border-radius:6px;cursor:pointer;position:relative;vertical-align:middle;transition:all .15s;background:#fff;}
+  .cb:hover{border-color:var(--veg-red);}
+  .cb:checked{background:var(--done-fg);border-color:var(--done-fg);}
+  .cb:checked::after{content:"";position:absolute;left:6px;top:2px;width:6px;height:11px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg);}
+  .cb:focus-visible{outline:2px solid var(--veg-red);outline-offset:2px;}
+  .cb.v2cb:hover{border-color:#7a4ad6;}
+  .cb.v2cb:checked{background:#7a4ad6;border-color:#7a4ad6;}
+
+  /* per-section link control */
+  .section-foot{padding:12px 18px;border-top:1px solid var(--line);background:#fff;display:flex;flex-direction:column;gap:8px;}
+  .lk-label{font-size:11px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--gray);}
+  .lk-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .lk-input{flex:1;min-width:180px;font-family:inherit;font-size:13px;padding:8px 10px;border:1px solid var(--line);border-radius:6px;line-height:1.35;resize:vertical;min-height:38px;max-height:260px;}
+  .lk-tag{font-size:11px;color:var(--gray);white-space:nowrap;}
+  .lk-input:focus{outline:2px solid var(--veg-red);outline-offset:1px;border-color:var(--veg-red);}
+  .mini{font-size:13px;font-weight:600;padding:8px 14px;border-radius:6px;border:1px solid var(--line);background:#fff;color:var(--ink);cursor:pointer;white-space:nowrap;text-decoration:none;display:inline-flex;align-items:center;}
+  .mini:hover{background:var(--bg-soft);}
+  .mini.save{background:var(--veg-red);border-color:var(--veg-red);color:#fff;}
+  .mini.save:hover{background:var(--veg-red-d);}
+  .mini.open{color:var(--veg-red);border-color:var(--veg-red);}
+  .mini.open:hover{background:#fbe9ea;}
+  .mini.del{color:#b51e22;border:none;padding:8px 8px;}
+  .mini.del:hover{background:#fbe9ea;}
+
+  .controls{display:flex;justify-content:flex-end;gap:10px;margin-bottom:18px;}
+  .btn{font-family:inherit;font-size:13px;font-weight:500;padding:8px 14px;border-radius:8px;border:1px solid var(--line);background:#fff;color:var(--ink);cursor:pointer;}
+  .btn:hover{background:var(--bg-soft);}
+  .note{font-size:12px;color:var(--gray);font-style:normal;margin-left:8px;}
+  @media print{.controls{display:none;} .lk-input,.mini.save,.mini.del{display:none;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <h1>Guinea Pig ER Course — Build Tracker <span class="mvp-badge">MVP</span></h1>
+    <p class="sub">Entry-level guinea pig ER curriculum · 8 sections · tick a box at each stage</p>
+  </div>
+
+  <div class="summary">
+    <div class="stat"><div class="num" id="s-total">0</div><div class="lbl">Total lessons</div></div>
+    <div class="stat html"><div class="num" id="s-html">0</div><div class="lbl">HTML built</div></div>
+    <div class="stat"><div class="num" id="s-review">0</div><div class="lbl">Reviewed</div></div>
+    <div class="stat"><div class="num" id="s-media">0</div><div class="lbl">Media done</div></div>
+    <div class="stat"><div class="num" id="s-final">0</div><div class="lbl">Final review</div></div>
+    <div class="stat"><div class="num" id="s-v2">0</div><div class="lbl">V2 dev</div></div>
+  </div>
+  <div class="prog-label"><span>Time-weighted build progress</span><span id="prog-text">0%</span></div>
+  <div class="progress"><div class="bar" id="bar"></div></div>
+  <p class="prog-note">Per lesson: HTML 5h &middot; Review 1.5h &middot; Media 2h &middot; Final review 1.5h (10h total)</p>
+
+  <div class="controls">
+    <button class="btn" id="reset">Reset all</button>
+  </div>
+
+  <div id="tracker"></div>
+</div>
+
+<script>
+const SECTIONS = [
+  { name:"1. Introduction", lessons:[
+    {n:"Introduction to Guinea Pigs: Physiology and Basic Principles", html:0},
+  ]},
+  { name:"2. Fundamentals", lessons:[
+    {n:"Resources", html:0},
+  ]},
+  { name:"3. Guinea Pig Husbandry", lessons:[
+    {n:"Husbandry, Housing and Diet", html:0},
+  ]},
+  { name:"4. Guinea Pig Restraint", lessons:[
+    {n:"Restraint", html:0},
+  ]},
+  { name:"5. Physical Examination", lessons:[
+    {n:"Physical Examination", html:0},
+    {n:"Head: Physical Examination", html:0},
+    {n:"Respiratory System", html:0},
+    {n:"Abdomen and the Gastrointestinal Tract", html:0},
+    {n:"Urogenital", html:0},
+  ]},
+  { name:"6. ER Techniques", lessons:[
+    {n:"Sedation and Anesthesia", html:0},
+    {n:"Radiographs", html:0},
+    {n:"Venipuncture and Fluid Therapy", html:0},
+    {n:"Assisted Feeding", html:0},
+    {n:"Hospitalization", html:0},
+  ]},
+  { name:"7. Common ER Presentations", lessons:[
+    {n:"Aerophagia or \"Bloat\"", html:0},
+    {n:"Respiratory Distress", html:0},
+    {n:"Urolithiasis", html:0},
+  ]},
+  { name:"8. Module Quiz", lessons:[
+    {n:"Final Quiz", html:0, note:"quiz"},
+    {n:"Congratulations!", html:0},
+  ]},
+];
+
+const COLS = ["html","review","media","final"];
+const COL_LABELS = ["HTML","Review","Media","Final Review"];
+const STAGE_HOURS = {html:5, review:1.5, media:2, final:1.5};
+const LESSON_HOURS = COLS.reduce((s,c)=>s+STAGE_HOURS[c],0);
+function fmtH(h){ return (Math.round(h*10)/10).toString(); }
+const KEY = "guineapig_tracker_v1";
+const LINKS_KEY = KEY + "::links";
+
+// load saved checkbox state
+let saved = {};
+try { saved = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch(e){ saved = {}; }
+// load saved section links
+let savedLinks = {};
+try { savedLinks = JSON.parse(localStorage.getItem(LINKS_KEY) || "{}"); } catch(e){ savedLinks = {}; }
+
+function persistLinks(){ try{ localStorage.setItem(LINKS_KEY, JSON.stringify(savedLinks)); }catch(e){} }
+function cleanUrl(u){ u=(u||"").trim(); if(!u) return ""; if(!/^https?:\/\//i.test(u)) u="https://"+u; return u; }
+function detectEntry(raw){
+  const t=(raw||"").trim();
+  if(!t) return null;
+  if(/<[a-z!\/][^>]*>/i.test(t)) return {kind:"html", value:t};   // looks like markup
+  return {kind:"url", value:cleanUrl(t)};
+}
+function openHtmlBlob(html){
+  try{
+    const blob=new Blob([html],{type:"text/html"});
+    const url=URL.createObjectURL(blob);
+    const w=window.open(url,"_blank");
+    if(!w){ alert("Your browser blocked the new tab. Allow pop-ups for this page, or open this tracker as a downloaded file, then try again."); }
+    setTimeout(()=>URL.revokeObjectURL(url), 60000);
+  }catch(e){ alert("Couldn't open the HTML: "+e.message); }
+}
+
+function sectionLinkFoot(sid){
+  const foot=document.createElement("div"); foot.className="section-foot";
+  const label=document.createElement("div"); label.className="lk-label"; label.textContent="Module / HTML link";
+  const row=document.createElement("div"); row.className="lk-row";
+
+  function entry(){
+    let e=savedLinks[sid];
+    if(typeof e==="string") e={kind:"url", value:e};   // migrate old saves
+    return e;
+  }
+  function view(){
+    row.innerHTML="";
+    const e=entry();
+    if(e.kind==="html"){
+      const b=document.createElement("button"); b.className="mini open"; b.textContent="Open HTML \u2197"; b.onclick=()=>openHtmlBlob(e.value);
+      const tag=document.createElement("span"); tag.className="lk-tag"; tag.textContent="HTML \u00b7 "+e.value.length.toLocaleString()+" chars";
+      row.appendChild(b); row.appendChild(tag);
+    } else {
+      const a=document.createElement("a"); a.className="mini open"; a.href=e.value; a.target="_blank"; a.rel="noopener"; a.textContent="Open link \u2197"; a.title=e.value;
+      row.appendChild(a);
+    }
+    const ed=document.createElement("button"); ed.className="mini"; ed.textContent="Edit"; ed.onclick=edit;
+    row.appendChild(ed);
+  }
+  function edit(){
+    row.innerHTML="";
+    const ta=document.createElement("textarea"); ta.className="lk-input"; ta.rows=1;
+    ta.placeholder="Paste a link (Rise / hosted page) \u2014 or paste raw HTML code\u2026";
+    const cur=entry(); ta.value=cur?cur.value:"";
+    function grow(){ ta.style.height="auto"; ta.style.height=Math.min(ta.scrollHeight,260)+"px"; }
+    ta.addEventListener("input", grow);
+    const sv=document.createElement("button"); sv.className="mini save"; sv.textContent="Save";
+    sv.onclick=()=>{ const d=detectEntry(ta.value); if(d){savedLinks[sid]=d;} else {delete savedLinks[sid];} persistLinks(); draw(); };
+    ta.addEventListener("keydown",e=>{ if(e.key==="Enter" && !e.shiftKey){ e.preventDefault(); sv.onclick(); } });
+    row.appendChild(ta); row.appendChild(sv);
+    if(savedLinks[sid]){ const cl=document.createElement("button"); cl.className="mini del"; cl.textContent="Clear"; cl.onclick=()=>{ delete savedLinks[sid]; persistLinks(); draw(); }; row.appendChild(cl); }
+    ta.focus(); grow();
+  }
+  function draw(){ if(savedLinks[sid]) view(); else edit(); }
+  draw();
+  foot.appendChild(label); foot.appendChild(row);
+  return foot;
+}
+
+const tracker = document.getElementById("tracker");
+let idx = 0;
+const all = []; // {id, sec}
+
+SECTIONS.forEach((sec, si)=>{
+  const box = document.createElement("div"); box.className="section";
+  const head = document.createElement("div"); head.className="section-head";
+  head.innerHTML = `<span class="name">${sec.name}</span><span class="count" data-sec></span>`;
+  box.appendChild(head);
+
+  const table = document.createElement("table");
+  table.innerHTML = `<thead><tr><th class="lesson">Lesson</th>${COL_LABELS.map(l=>`<th>${l}</th>`).join("")}<th>V2 Development</th></tr></thead>`;
+  const tbody = document.createElement("tbody");
+
+  sec.lessons.forEach(lesson=>{
+    const id = "L"+(idx++);
+    const tr = document.createElement("tr");
+    const noteHtml = lesson.note ? `<span class="note">(${lesson.note})</span>` : "";
+    let cells = `<td class="lesson">${lesson.n}${noteHtml}</td>`;
+    COLS.forEach(col=>{
+      const sk = id+":"+col;
+      let checked = saved.hasOwnProperty(sk) ? saved[sk] : (col==="html" ? !!lesson.html : false);
+      cells += `<td><input type="checkbox" class="cb" data-key="${sk}" data-sec="${sec.name}" ${checked?"checked":""}></td>`;
+    });
+    const v2k = id+":v2";
+    const v2checked = saved.hasOwnProperty(v2k) ? saved[v2k] : false;
+    cells += `<td><input type="checkbox" class="cb v2cb" data-key="${v2k}" data-sec="${sec.name}" ${v2checked?"checked":""}></td>`;
+    tr.innerHTML = cells;
+    tbody.appendChild(tr);
+    all.push({id, sec:sec.name});
+  });
+  table.appendChild(tbody);
+  box.appendChild(table);
+  box.appendChild(sectionLinkFoot("S"+si));
+  tracker.appendChild(box);
+});
+
+function persist(){
+  const state = {};
+  document.querySelectorAll(".cb").forEach(cb=>{ state[cb.dataset.key]=cb.checked; });
+  try { localStorage.setItem(KEY, JSON.stringify(state)); } catch(e){}
+}
+
+function refresh(){
+  const counts = {html:0,review:0,media:0,final:0,v2:0};
+  document.querySelectorAll(".cb").forEach(cb=>{
+    if(cb.checked){ const col=cb.dataset.key.split(":")[1]; if(counts[col]!==undefined) counts[col]++; }
+  });
+  document.getElementById("s-total").textContent = all.length;
+  document.getElementById("s-html").textContent = counts.html;
+  document.getElementById("s-review").textContent = counts.review;
+  document.getElementById("s-media").textContent = counts.media;
+  document.getElementById("s-final").textContent = counts.final;
+  document.getElementById("s-v2").textContent = counts.v2;
+
+  const doneHours = COLS.reduce((s,c)=>s+counts[c]*STAGE_HOURS[c],0);
+  const totalHours = all.length*LESSON_HOURS;
+  const pct = totalHours ? doneHours/totalHours*100 : 0;
+  document.getElementById("bar").style.width = pct+"%";
+  document.getElementById("prog-text").textContent = `${pct.toFixed(0)}% \u00b7 ${fmtH(doneHours)} / ${fmtH(totalHours)} hrs`;
+
+  document.querySelectorAll(".section").forEach(secEl=>{
+    let secDone=0;
+    secEl.querySelectorAll('.cb').forEach(cb=>{ if(cb.checked){ const col=cb.dataset.key.split(":")[1]; secDone+=(STAGE_HOURS[col]||0); } });
+    const secLessons = secEl.querySelectorAll('tbody tr').length;
+    const secTotal = secLessons*LESSON_HOURS;
+    const spct = secTotal ? secDone/secTotal*100 : 0;
+    secEl.querySelector("[data-sec]").textContent = `${fmtH(secDone)}/${fmtH(secTotal)} hrs \u00b7 ${spct.toFixed(0)}%`;
+  });
+}
+
+document.querySelectorAll(".cb").forEach(cb=>{
+  cb.addEventListener("change", ()=>{ persist(); refresh(); });
+});
+
+document.getElementById("reset").addEventListener("click", ()=>{
+  if(!confirm("Reset all checkboxes to defaults? (Saved section links are kept.)")) return;
+  try { localStorage.removeItem(KEY); } catch(e){}
+  location.reload();
+});
+
+refresh();
+</script>
+</body>
+</html>
