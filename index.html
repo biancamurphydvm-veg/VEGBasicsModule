@@ -54,7 +54,12 @@
   .card.mvp .card-head{background:var(--mvp);}
   .card.mvp .badge{color:var(--mvp);}
   .tag-mvp{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.04em;background:#fff;color:var(--mvp);border-radius:20px;padding:1px 8px;margin-left:6px;vertical-align:middle;}
-  .v2line{margin-top:10px;font-size:12px;font-weight:600;color:var(--mvp);}
+  .v2line{margin-top:10px;font-size:12px;font-weight:600;color:#7a4ad6;}
+  .status-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:10px 16px;border-bottom:1px solid var(--line);background:#fff;}
+  .status-row .slbl{font-size:11px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--gray);margin-right:2px;}
+  .chip{font-size:11px;font-weight:600;padding:3px 11px;border-radius:20px;border:1px solid var(--line);background:#fff;color:var(--gray);cursor:pointer;font-family:inherit;}
+  .chip:hover{border-color:#aaa;color:var(--ink);}
+  .chip.on{color:#fff;border-color:transparent;}
 
   .card-body{padding:16px;flex:1;}
   .meta{font-size:13px;color:var(--gray);margin-bottom:12px;}
@@ -160,11 +165,36 @@ const LESSON_HOURS = COLS.reduce((s,c)=>s+STAGE_HOURS[c],0);
 function fmtH(h){ return (Math.round(h*10)/10).toString(); }
 const LINKS_KEY = "program_module_links_v1";
 const CUSTOM_KEY = "program_custom_modules_v1";
+const STATUS_KEY = "program_status_v1";
 
 function load(key,fallback){ try{ return JSON.parse(localStorage.getItem(key)) ?? fallback; }catch(e){ return fallback; } }
 function save(key,val){ try{ localStorage.setItem(key, JSON.stringify(val)); }catch(e){} }
 let links  = load(LINKS_KEY, {});
 let custom = load(CUSTOM_KEY, []);
+let statusSaved = load(STATUS_KEY, {});
+
+const STATUS_DEFS = [
+  {id:"inprogress", label:"In Progress", color:"#d98014"},
+  {id:"mvp",        label:"MVP",         color:"#2b6cb0"},
+  {id:"v1",         label:"V1",          color:"#4a7a36"},
+  {id:"v2",         label:"V2",          color:"#7a4ad6"},
+  {id:"v3",         label:"V3",          color:"#1f8a8a"},
+];
+function statusesFor(c){ return Object.prototype.hasOwnProperty.call(statusSaved,c.slug) ? (statusSaved[c.slug]||[]) : (c.mvp ? ["mvp"] : []); }
+function toggleStatus(c,id){ let a=statusesFor(c).slice(); const i=a.indexOf(id); if(i>=0)a.splice(i,1); else a.push(id); statusSaved[c.slug]=a; save(STATUS_KEY,statusSaved); renderCourses(); }
+function statusRow(c){
+  const sel=statusesFor(c);
+  const row=document.createElement("div"); row.className="status-row";
+  const lbl=document.createElement("span"); lbl.className="slbl"; lbl.textContent="Status"; row.appendChild(lbl);
+  STATUS_DEFS.forEach(s=>{
+    const on=sel.includes(s.id);
+    const chip=document.createElement("button"); chip.className="chip"+(on?" on":""); chip.textContent=s.label;
+    if(on){ chip.style.background=s.color; chip.style.borderColor=s.color; }
+    chip.onclick=()=>toggleStatus(c,s.id);
+    row.appendChild(chip);
+  });
+  return row;
+}
 
 function cleanUrl(u){ u=(u||"").trim(); if(!u) return ""; if(!/^https?:\/\//i.test(u)) u="https://"+u; return u; }
 function detectEntry(raw){
@@ -260,15 +290,16 @@ function renderCourses(){
 
   COURSES.forEach(c=>{
     const p = progressFor(c);
-    const st = statusFor(c,p);
+    const sel = statusesFor(c);
+    const isMvp = sel.includes("mvp");
     const card=document.createElement("div");
-    card.className="card"+(c.planned?" planned":" active")+(c.mvp?" mvp":"");
+    card.className="card"+(c.planned?" planned":" active")+(isMvp?" mvp":"");
 
     const head=document.createElement("div"); head.className="card-head";
-    const mvpPill = c.mvp ? `<span class="tag-mvp">MVP</span>` : "";
-    const subLine = (c.sub||c.mvp) ? `<div class="csub">${esc(c.sub||"")}${mvpPill}</div>` : "";
-    head.innerHTML=`<div><div class="name">${esc(c.name)}</div>${subLine}</div><span class="badge ${st.cls}">${st.label}</span>`;
+    if(isMvp) head.style.background="#2b6cb0";
+    head.innerHTML=`<div><div class="name">${esc(c.name)}</div>${c.sub?`<div class="csub">${esc(c.sub)}</div>`:""}</div>`;
     card.appendChild(head);
+    card.appendChild(statusRow(c));
 
     if(c.planned){
       planned++;
@@ -285,7 +316,7 @@ function renderCourses(){
         const v=p.stage[col], pc=p.N?(v/p.N*100):0;
         return `<div class="srow"><span class="sl">${COL_LABELS[col]}</span><span class="sb"><span class="f" style="width:${pc}%"></span></span><span class="sn">${v}/${p.N}</span></div>`;
       }).join("");
-      const v2line = c.mvp ? `<div class="v2line">V2 dev: ${p.v2} / ${p.N}</div>` : "";
+      const v2line = `<div class="v2line">V2 dev: ${p.v2} / ${p.N}</div>`;
       body.innerHTML=`<div class="meta">${p.N} lessons \u00b7 ${fmtH(p.totalHours)} hrs est.</div>
         <div class="overall"><span class="pct">${ov}%</span><span class="pl">overall</span></div>
         <div class="obar"><span class="b ${ov>=100?'done':''}" style="width:${ov}%"></span></div>
@@ -299,7 +330,7 @@ function renderCourses(){
       foot.appendChild(linkControl(c.slug));
       card.appendChild(foot);
 
-      // make the header + body open the tracker too
+      // make the header + body open the tracker too (status row stays interactive)
       [head, body].forEach(el=>{ el.classList.add("nav"); el.addEventListener("click", ()=>{ window.location.href=c.file; }); });
     }
     grid.appendChild(card);
@@ -349,7 +380,7 @@ document.getElementById("cm-url").addEventListener("keydown",e=>{ if(e.key==="En
 function renderAll(){ renderCourses(); }
 renderAll(); renderCustom();
 document.getElementById("refresh").addEventListener("click", renderAll);
-window.addEventListener("storage", ()=>{ links=load(LINKS_KEY,{}); custom=load(CUSTOM_KEY,[]); renderAll(); renderCustom(); });
+window.addEventListener("storage", ()=>{ links=load(LINKS_KEY,{}); custom=load(CUSTOM_KEY,[]); statusSaved=load(STATUS_KEY,{}); renderAll(); renderCustom(); });
 document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) renderAll(); });
 
 document.getElementById("hint").textContent =
