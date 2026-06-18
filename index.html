@@ -67,14 +67,14 @@
   .overall .pct{font-size:26px;font-weight:700;}
   .overall .pl{font-size:12px;color:var(--gray);}
   .obar{height:8px;border-radius:5px;background:#eee;overflow:hidden;margin-bottom:16px;}
-  .obar .b{height:100%;background:var(--veg-red);width:0;transition:width .35s ease;}
+  .obar .b{display:block;height:100%;background:var(--veg-red);width:0;transition:width .35s ease;}
   .obar .b.done{background:var(--done-fg);}
 
   .stages{display:flex;flex-direction:column;gap:8px;}
   .srow{display:grid;grid-template-columns:70px 1fr 42px;align-items:center;gap:8px;font-size:12px;}
   .srow .sl{color:var(--gray);font-weight:500;}
   .srow .sb{height:6px;border-radius:4px;background:#eee;overflow:hidden;}
-  .srow .sb .f{height:100%;background:var(--veg-red);width:0;transition:width .35s ease;}
+  .srow .sb .f{display:block;height:100%;background:var(--veg-red);width:0;transition:width .35s ease;}
   .srow .sn{text-align:right;color:var(--gray);font-variant-numeric:tabular-nums;}
 
   .card-foot{padding:13px 16px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:10px;}
