@@ -71,6 +71,13 @@
   .mini.del{color:#b51e22;border:none;padding:8px 8px;}
   .mini.del:hover{background:#fbe9ea;}
 
+  /* focus group review section */
+  .fg-body{padding:14px 18px;display:flex;flex-direction:column;gap:10px;}
+  .fg-check{display:flex;align-items:center;gap:9px;font-size:14px;font-weight:500;cursor:pointer;}
+  .fg-check input{width:20px;height:20px;cursor:pointer;accent-color:var(--done-fg);}
+  .fg-notes{width:100%;min-height:72px;font-family:inherit;font-size:13px;padding:9px 11px;border:1px solid var(--line);border-radius:8px;line-height:1.4;resize:vertical;}
+  .fg-notes:focus{outline:2px solid var(--veg-red);outline-offset:1px;border-color:var(--veg-red);}
+
   .controls{display:flex;justify-content:flex-end;gap:10px;margin-bottom:18px;}
   .btn{font-family:inherit;font-size:13px;font-weight:500;padding:8px 14px;border-radius:8px;border:1px solid var(--line);background:#fff;color:var(--ink);cursor:pointer;}
   .btn:hover{background:var(--bg-soft);}
@@ -104,6 +111,9 @@
   <div id="tracker"></div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="sync.js"></script>
 <script>
 const SECTIONS = [
   { name:"1. Introduction", lessons:[
@@ -150,6 +160,9 @@ const LESSON_HOURS = COLS.reduce((s,c)=>s+STAGE_HOURS[c],0);
 function fmtH(h){ return (Math.round(h*10)/10).toString(); }
 const KEY = "guineapig_tracker_v1";
 const LINKS_KEY = KEY + "::links";
+const FG_KEY = KEY + "::fg";
+let fgState = {done:false, notes:""};
+function persistFG(){ try{ localStorage.setItem(FG_KEY, JSON.stringify(fgState)); }catch(e){} if(window.ProgramSync) ProgramSync.write(FG_KEY, fgState); }
 
 // load saved checkbox state
 let saved = {};
@@ -158,7 +171,7 @@ try { saved = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch(e){ saved =
 let savedLinks = {};
 try { savedLinks = JSON.parse(localStorage.getItem(LINKS_KEY) || "{}"); } catch(e){ savedLinks = {}; }
 
-function persistLinks(){ try{ localStorage.setItem(LINKS_KEY, JSON.stringify(savedLinks)); }catch(e){} }
+function persistLinks(){ try{ localStorage.setItem(LINKS_KEY, JSON.stringify(savedLinks)); }catch(e){} if(window.ProgramSync) ProgramSync.write(LINKS_KEY, savedLinks); }
 function cleanUrl(u){ u=(u||"").trim(); if(!u) return ""; if(!/^https?:\/\//i.test(u)) u="https://"+u; return u; }
 function detectEntry(raw){
   const t=(raw||"").trim();
@@ -222,45 +235,75 @@ function sectionLinkFoot(sid){
 
 const tracker = document.getElementById("tracker");
 let idx = 0;
-const all = []; // {id, sec}
+let all = []; // {id, sec}
 
-SECTIONS.forEach((sec, si)=>{
-  const box = document.createElement("div"); box.className="section";
-  const head = document.createElement("div"); head.className="section-head";
-  head.innerHTML = `<span class="name">${sec.name}</span><span class="count" data-sec></span>`;
-  box.appendChild(head);
+function renderTracker(){
+  try { saved = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch(e){ saved={}; }
+  try { savedLinks = JSON.parse(localStorage.getItem(LINKS_KEY) || "{}"); } catch(e){ savedLinks={}; }
+  tracker.innerHTML=""; idx=0; all=[];
+  SECTIONS.forEach((sec, si)=>{
+    const box = document.createElement("div"); box.className="section";
+    const head = document.createElement("div"); head.className="section-head";
+    head.innerHTML = `<span class="name">${sec.name}</span><span class="count" data-sec></span>`;
+    box.appendChild(head);
 
-  const table = document.createElement("table");
-  table.innerHTML = `<thead><tr><th class="lesson">Lesson</th>${COL_LABELS.map(l=>`<th>${l}</th>`).join("")}<th>V2 Development</th></tr></thead>`;
-  const tbody = document.createElement("tbody");
+    const table = document.createElement("table");
+    table.innerHTML = `<thead><tr><th class="lesson">Lesson</th>${COL_LABELS.map(l=>`<th>${l}</th>`).join("")}<th>V2 Development</th></tr></thead>`;
+    const tbody = document.createElement("tbody");
 
-  sec.lessons.forEach(lesson=>{
-    const id = "L"+(idx++);
-    const tr = document.createElement("tr");
-    const noteHtml = lesson.note ? `<span class="note">(${lesson.note})</span>` : "";
-    let cells = `<td class="lesson">${lesson.n}${noteHtml}</td>`;
-    COLS.forEach(col=>{
-      const sk = id+":"+col;
-      let checked = saved.hasOwnProperty(sk) ? saved[sk] : (col==="html" ? !!lesson.html : false);
-      cells += `<td><input type="checkbox" class="cb" data-key="${sk}" data-sec="${sec.name}" ${checked?"checked":""}></td>`;
+    sec.lessons.forEach(lesson=>{
+      const id = "L"+(idx++);
+      const tr = document.createElement("tr");
+      const noteHtml = lesson.note ? `<span class="note">(${lesson.note})</span>` : "";
+      let cells = `<td class="lesson">${lesson.n}${noteHtml}</td>`;
+      COLS.forEach(col=>{
+        const sk = id+":"+col;
+        let checked = saved.hasOwnProperty(sk) ? saved[sk] : (col==="html" ? !!lesson.html : false);
+        cells += `<td><input type="checkbox" class="cb" data-key="${sk}" data-sec="${sec.name}" ${checked?"checked":""}></td>`;
+      });
+      const v2k = id+":v2";
+      const v2checked = saved.hasOwnProperty(v2k) ? saved[v2k] : false;
+      cells += `<td><input type="checkbox" class="cb v2cb" data-key="${v2k}" data-sec="${sec.name}" ${v2checked?"checked":""}></td>`;
+      tr.innerHTML = cells;
+      tbody.appendChild(tr);
+      all.push({id, sec:sec.name});
     });
-    const v2k = id+":v2";
-    const v2checked = saved.hasOwnProperty(v2k) ? saved[v2k] : false;
-    cells += `<td><input type="checkbox" class="cb v2cb" data-key="${v2k}" data-sec="${sec.name}" ${v2checked?"checked":""}></td>`;
-    tr.innerHTML = cells;
-    tbody.appendChild(tr);
-    all.push({id, sec:sec.name});
+    table.appendChild(tbody);
+    box.appendChild(table);
+    box.appendChild(sectionLinkFoot("S"+si));
+    tracker.appendChild(box);
   });
-  table.appendChild(tbody);
-  box.appendChild(table);
-  box.appendChild(sectionLinkFoot("S"+si));
-  tracker.appendChild(box);
-});
+
+  // ---- Focus Group Review section (one per tracker) ----
+  try { fgState = JSON.parse(localStorage.getItem(FG_KEY) || "{}"); } catch(e){ fgState={}; }
+  fgState.done = !!fgState.done; fgState.notes = fgState.notes || "";
+  const fgBox = document.createElement("div"); fgBox.className="section fg-section";
+  const fgHead = document.createElement("div"); fgHead.className="section-head";
+  fgHead.innerHTML = `<span class="name">Focus Group Review</span><span class="count" id="fg-status"></span>`;
+  fgBox.appendChild(fgHead);
+  const fgBody = document.createElement("div"); fgBody.className="fg-body";
+  const lab = document.createElement("label"); lab.className="fg-check";
+  const cbx = document.createElement("input"); cbx.type="checkbox"; cbx.className="fg-done"; cbx.checked=fgState.done;
+  cbx.addEventListener("change", ()=>{ fgState.done=cbx.checked; persistFG(); fgHead.querySelector("#fg-status").textContent = fgState.done?"Complete":"Pending"; });
+  lab.appendChild(cbx); lab.appendChild(document.createTextNode(" Focus group review complete"));
+  fgBody.appendChild(lab);
+  const nlab = document.createElement("div"); nlab.className="lk-label"; nlab.textContent="Focus group notes / feedback"; fgBody.appendChild(nlab);
+  const fta = document.createElement("textarea"); fta.className="fg-notes"; fta.placeholder="Paste focus group feedback, action items, or a link to the recording\u2026"; fta.value=fgState.notes;
+  fta.addEventListener("change", ()=>{ fgState.notes=fta.value; persistFG(); });
+  fgBody.appendChild(fta);
+  fgBox.appendChild(fgBody);
+  tracker.appendChild(fgBox);
+  fgHead.querySelector("#fg-status").textContent = fgState.done ? "Complete" : "Pending";
+
+  document.querySelectorAll(".cb").forEach(cb=>{ cb.addEventListener("change", ()=>{ persist(); refresh(); }); });
+  refresh();
+}
 
 function persist(){
   const state = {};
   document.querySelectorAll(".cb").forEach(cb=>{ state[cb.dataset.key]=cb.checked; });
   try { localStorage.setItem(KEY, JSON.stringify(state)); } catch(e){}
+  if(window.ProgramSync) ProgramSync.write(KEY, state);
 }
 
 function refresh(){
@@ -282,6 +325,7 @@ function refresh(){
   document.getElementById("prog-text").textContent = `${pct.toFixed(0)}% \u00b7 ${fmtH(doneHours)} / ${fmtH(totalHours)} hrs`;
 
   document.querySelectorAll(".section").forEach(secEl=>{
+    if(secEl.classList.contains("fg-section")) return;
     let secDone=0;
     secEl.querySelectorAll('.cb').forEach(cb=>{ if(cb.checked){ const col=cb.dataset.key.split(":")[1]; secDone+=(STAGE_HOURS[col]||0); } });
     const secLessons = secEl.querySelectorAll('tbody tr').length;
@@ -292,16 +336,33 @@ function refresh(){
 }
 
 document.querySelectorAll(".cb").forEach(cb=>{
-  cb.addEventListener("change", ()=>{ persist(); refresh(); });
+  // (handlers are attached inside renderTracker)
 });
 
 document.getElementById("reset").addEventListener("click", ()=>{
   if(!confirm("Reset all checkboxes to defaults? (Saved section links are kept.)")) return;
   try { localStorage.removeItem(KEY); } catch(e){}
-  location.reload();
+  if(window.ProgramSync) ProgramSync.write(KEY, {});
+  renderTracker();
 });
 
-refresh();
+renderTracker();
+
+// live shared sync — no-op unless sync.js has been configured
+function syncBind(key){
+  if(!(window.ProgramSync && ProgramSync.enabled())) return;
+  ProgramSync.subscribe(key, function(remote){
+    if(remote==null){ const local=localStorage.getItem(key); if(local && local!=="{}"){ ProgramSync.write(key, JSON.parse(local)); } return; }
+    const incoming = JSON.stringify(remote);
+    if(incoming === (localStorage.getItem(key)||"")) return;   // ignore our own echo / no change
+    try{ localStorage.setItem(key, incoming); }catch(e){}
+    renderTracker();
+  });
+}
+syncBind(KEY);
+syncBind(LINKS_KEY);
+syncBind(FG_KEY);
+
 </script>
 </body>
 </html>
