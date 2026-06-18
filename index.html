@@ -8,6 +8,7 @@
 <style>
   :root{
     --veg-red:#eb2429; --veg-red-d:#c61d21;
+    --bar:#b9837f;
     --mvp:#2b6cb0; --mvp-d:#235a92;
     --ink:#1a1a1a; --gray:#6b6b6b; --line:#e2e2e2;
     --done-fg:#4a7a36; --done-bg:#edf4e8;
@@ -35,7 +36,7 @@
   .prog-wrap{margin:0 0 30px;}
   .prog-label{display:flex;justify-content:space-between;font-size:13px;color:var(--gray);font-weight:500;margin-bottom:6px;}
   .progress{height:12px;border-radius:6px;background:#eee;overflow:hidden;}
-  .progress .bar{height:100%;background:var(--veg-red);width:0;transition:width .35s ease;}
+  .progress .bar{height:100%;background:var(--bar);width:0;transition:width .35s ease;}
   .prog-note{font-size:12px;color:var(--gray);margin:8px 0 0;}
 
   .sec-title{font-size:18px;font-weight:700;margin:34px 0 14px;padding-bottom:8px;border-bottom:2px solid var(--line);}
@@ -67,14 +68,14 @@
   .overall .pct{font-size:26px;font-weight:700;}
   .overall .pl{font-size:12px;color:var(--gray);}
   .obar{height:8px;border-radius:5px;background:#eee;overflow:hidden;margin-bottom:16px;}
-  .obar .b{display:block;height:100%;background:var(--veg-red);width:0;transition:width .35s ease;}
+  .obar .b{display:block;height:100%;background:var(--bar);width:0;transition:width .35s ease;}
   .obar .b.done{background:var(--done-fg);}
 
   .stages{display:flex;flex-direction:column;gap:8px;}
   .srow{display:grid;grid-template-columns:70px 1fr 42px;align-items:center;gap:8px;font-size:12px;}
   .srow .sl{color:var(--gray);font-weight:500;}
   .srow .sb{height:6px;border-radius:4px;background:#eee;overflow:hidden;}
-  .srow .sb .f{display:block;height:100%;background:var(--veg-red);width:0;transition:width .35s ease;}
+  .srow .sb .f{display:block;height:100%;background:var(--bar);width:0;transition:width .35s ease;}
   .srow .sn{text-align:right;color:var(--gray);font-variant-numeric:tabular-nums;}
 
   .card-foot{padding:13px 16px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:10px;}
@@ -156,8 +157,11 @@
   <p class="hint" id="hint"></p>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="sync.js"></script>
 <script>
-const COURSES = [{"slug": "chelonian", "name": "Chelonian", "sub": "Turtle & Tortoise", "file": "chelonian-er-tracker.html", "key": "chelonian_tracker_v1", "N": 31, "htmlDefaults": [1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0]}, {"slug": "avian", "name": "Avian", "sub": "Birds", "file": "avian-er-tracker.html", "key": "avian_tracker_v1", "N": 24, "htmlDefaults": [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1]}, {"slug": "guineapig", "mvp": true, "name": "Guinea Pig", "sub": "", "file": "guineapig-er-tracker.html", "key": "guineapig_tracker_v1", "N": 19}, {"slug": "ferret", "mvp": true, "name": "Ferret", "sub": "", "file": "ferret-er-tracker.html", "key": "ferret_tracker_v1", "N": 17}, {"slug": "rabbit", "mvp": true, "name": "Rabbit", "sub": "", "file": "rabbit-er-tracker.html", "key": "rabbit_tracker_v1", "N": 25}, {"slug": "beardeddragon", "mvp": true, "name": "Bearded Dragon", "sub": "Reptile", "file": "beardeddragon-er-tracker.html", "key": "beardeddragon_tracker_v1", "N": 19}, {"slug": "chicken", "name": "Chicken / Duck", "sub": "", "planned": true}, {"slug": "snake", "name": "Snake", "sub": "", "planned": true}, {"slug": "chinchilla", "name": "Chinchilla", "sub": "", "planned": true}];
+const COURSES = [{"slug": "chelonian", "name": "Chelonian", "sub": "Turtle & Tortoise", "file": "chelonian-er-tracker.html", "key": "chelonian_tracker_v1", "N": 31, "htmlDefaults": [1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0]}, {"slug": "avian", "name": "Avian", "sub": "Birds", "file": "avian-er-tracker.html", "key": "avian_tracker_v1", "N": 24, "htmlDefaults": [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1]}, {"slug": "guineapig", "mvp": true, "name": "Guinea Pig", "sub": "", "file": "guineapig-er-tracker.html", "key": "guineapig_tracker_v1", "N": 19}, {"slug": "ferret", "mvp": true, "name": "Ferret", "sub": "", "file": "ferret-er-tracker.html", "key": "ferret_tracker_v1", "N": 17}, {"slug": "rabbit", "mvp": true, "name": "Rabbit", "sub": "", "file": "rabbit-er-tracker.html", "key": "rabbit_tracker_v1", "N": 25}, {"slug": "beardeddragon", "mvp": true, "name": "Bearded Dragon", "sub": "Reptile", "file": "beardeddragon-er-tracker.html", "key": "beardeddragon_tracker_v1", "N": 19}, {"slug": "reptiles", "name": "Reptiles", "sub": "", "file": "reptiles-er-tracker.html", "key": "reptiles_tracker_v1", "N": 18}, {"slug": "chicken", "name": "Chicken / Duck", "sub": "", "planned": true}, {"slug": "snake", "name": "Snake", "sub": "", "planned": true}, {"slug": "chinchilla", "name": "Chinchilla", "sub": "", "planned": true}];
 const COLS = ["html","review","media","final"];
 const COL_LABELS = {html:"HTML",review:"Review",media:"Media",final:"Final"};
 const STAGE_HOURS = {html:5, review:1.5, media:2, final:1.5};
@@ -168,7 +172,7 @@ const CUSTOM_KEY = "program_custom_modules_v1";
 const STATUS_KEY = "program_status_v1";
 
 function load(key,fallback){ try{ return JSON.parse(localStorage.getItem(key)) ?? fallback; }catch(e){ return fallback; } }
-function save(key,val){ try{ localStorage.setItem(key, JSON.stringify(val)); }catch(e){} }
+function save(key,val){ try{ localStorage.setItem(key, JSON.stringify(val)); }catch(e){} if(window.ProgramSync) ProgramSync.write(key, val); }
 let links  = load(LINKS_KEY, {});
 let custom = load(CUSTOM_KEY, []);
 let statusSaved = load(STATUS_KEY, {});
@@ -380,6 +384,22 @@ document.getElementById("cm-url").addEventListener("keydown",e=>{ if(e.key==="En
 function renderAll(){ renderCourses(); }
 renderAll(); renderCustom();
 document.getElementById("refresh").addEventListener("click", renderAll);
+
+// live shared sync — no-op unless sync.js has been configured
+function syncBind(key, apply){
+  if(!(window.ProgramSync && ProgramSync.enabled())) return;
+  ProgramSync.subscribe(key, function(remote){
+    if(remote==null){ const local=localStorage.getItem(key); if(local && local!=="{}" && local!=="[]"){ ProgramSync.write(key, JSON.parse(local)); } return; }
+    const incoming = JSON.stringify(remote);
+    if(incoming === (localStorage.getItem(key)||"")) return;   // ignore our own echo / no change
+    try{ localStorage.setItem(key, incoming); }catch(e){}
+    apply(remote);
+  });
+}
+syncBind(LINKS_KEY,  function(r){ links=r;       renderCourses(); });
+syncBind(CUSTOM_KEY, function(r){ custom=r;      renderCustom();  });
+syncBind(STATUS_KEY, function(r){ statusSaved=r; renderCourses(); });
+COURSES.forEach(function(c){ if(c.key) syncBind(c.key, function(){ renderCourses(); }); });
 window.addEventListener("storage", ()=>{ links=load(LINKS_KEY,{}); custom=load(CUSTOM_KEY,[]); statusSaved=load(STATUS_KEY,{}); renderAll(); renderCustom(); });
 document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) renderAll(); });
 
