@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Exotics ER — Program Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --veg-red:#eb2429; --veg-red-d:#c61d21;
+    --mvp:#2b6cb0; --mvp-d:#235a92;
+    --ink:#1a1a1a; --gray:#6b6b6b; --line:#e2e2e2;
+    --done-fg:#4a7a36; --done-bg:#edf4e8;
+    --bg-soft:#fafafa;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:#fff;font-family:'Roboto',Arial,sans-serif;color:var(--ink);}
+  .wrap{max-width:1200px;margin:0 auto;padding:32px 24px 64px;}
+  h1{font-size:34px;font-weight:700;margin:0 0 4px;}
+  .sub{color:var(--gray);font-size:16px;margin:0;}
+  .topbar{border-bottom:4px solid var(--veg-red);padding-bottom:14px;margin-bottom:22px;display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px;}
+  .topbtns{display:flex;gap:10px;flex-wrap:wrap;}
+
+  .btn{font-family:inherit;font-size:13px;font-weight:500;padding:9px 15px;border-radius:8px;border:1px solid var(--line);background:#fff;color:var(--ink);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px;}
+  .btn:hover{background:var(--bg-soft);}
+  .btn.primary{background:var(--veg-red);border-color:var(--veg-red);color:#fff;}
+  .btn.primary:hover{background:var(--veg-red-d);}
+
+  .summary{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:18px;}
+  .stat{flex:1;min-width:140px;background:var(--bg-soft);border:1px solid var(--line);border-radius:12px;padding:14px 18px;box-shadow:0 1px 2px rgba(0,0,0,.04);}
+  .stat .num{font-size:28px;font-weight:700;}
+  .stat .lbl{font-size:13px;color:var(--gray);font-weight:500;}
+  .stat.accent .num{color:var(--veg-red);}
+
+  .prog-wrap{margin:0 0 30px;}
+  .prog-label{display:flex;justify-content:space-between;font-size:13px;color:var(--gray);font-weight:500;margin-bottom:6px;}
+  .progress{height:12px;border-radius:6px;background:#eee;overflow:hidden;}
+  .progress .bar{height:100%;background:var(--veg-red);width:0;transition:width .35s ease;}
+  .prog-note{font-size:12px;color:var(--gray);margin:8px 0 0;}
+
+  .sec-title{font-size:18px;font-weight:700;margin:34px 0 14px;padding-bottom:8px;border-bottom:2px solid var(--line);}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px;}
+
+  .card{border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.05);display:flex;flex-direction:column;background:#fff;}
+  .card.active:hover{box-shadow:0 4px 14px rgba(0,0,0,.09);}
+  .card .nav{cursor:pointer;}
+  .card.active:hover .name{text-decoration:underline;}
+  .card-head{background:var(--veg-red);color:#fff;padding:13px 16px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
+  .card-head .name{font-size:18px;font-weight:700;line-height:1.15;}
+  .card-head .csub{font-size:12px;font-weight:400;opacity:.9;margin-top:2px;}
+  .badge{font-size:11px;font-weight:700;padding:4px 9px;border-radius:20px;white-space:nowrap;background:#fff;color:var(--veg-red);}
+  .badge.complete{background:var(--done-bg);color:var(--done-fg);}
+  .badge.notstarted{background:#fbe9ea;color:#b51e22;}
+  .card.mvp .card-head{background:var(--mvp);}
+  .card.mvp .badge{color:var(--mvp);}
+  .tag-mvp{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.04em;background:#fff;color:var(--mvp);border-radius:20px;padding:1px 8px;margin-left:6px;vertical-align:middle;}
+  .v2line{margin-top:10px;font-size:12px;font-weight:600;color:#7a4ad6;}
+  .status-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:10px 16px;border-bottom:1px solid var(--line);background:#fff;}
+  .status-row .slbl{font-size:11px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--gray);margin-right:2px;}
+  .chip{font-size:11px;font-weight:600;padding:3px 11px;border-radius:20px;border:1px solid var(--line);background:#fff;color:var(--gray);cursor:pointer;font-family:inherit;}
+  .chip:hover{border-color:#aaa;color:var(--ink);}
+  .chip.on{color:#fff;border-color:transparent;}
+
+  .card-body{padding:16px;flex:1;}
+  .meta{font-size:13px;color:var(--gray);margin-bottom:12px;}
+  .overall{display:flex;align-items:baseline;gap:8px;margin-bottom:4px;}
+  .overall .pct{font-size:26px;font-weight:700;}
+  .overall .pl{font-size:12px;color:var(--gray);}
+  .obar{height:8px;border-radius:5px;background:#eee;overflow:hidden;margin-bottom:16px;}
+  .obar .b{height:100%;background:var(--veg-red);width:0;transition:width .35s ease;}
+  .obar .b.done{background:var(--done-fg);}
+
+  .stages{display:flex;flex-direction:column;gap:8px;}
+  .srow{display:grid;grid-template-columns:70px 1fr 42px;align-items:center;gap:8px;font-size:12px;}
+  .srow .sl{color:var(--gray);font-weight:500;}
+  .srow .sb{height:6px;border-radius:4px;background:#eee;overflow:hidden;}
+  .srow .sb .f{height:100%;background:var(--veg-red);width:0;transition:width .35s ease;}
+  .srow .sn{text-align:right;color:var(--gray);font-variant-numeric:tabular-nums;}
+
+  .card-foot{padding:13px 16px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:10px;}
+  .foot-link{font-size:13px;font-weight:600;color:var(--veg-red);text-decoration:none;display:inline-flex;justify-content:space-between;}
+  .foot-link:hover{text-decoration:underline;}
+
+  .lk-label{font-size:11px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--gray);}
+  .lk-row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+  .lk-input{flex:1;min-width:110px;font-family:inherit;font-size:12px;padding:7px 9px;border:1px solid var(--line);border-radius:6px;line-height:1.35;resize:vertical;min-height:34px;max-height:200px;}
+  .lk-tag{font-size:11px;color:var(--gray);white-space:nowrap;}
+  .lk-input:focus{outline:2px solid var(--veg-red);outline-offset:1px;border-color:var(--veg-red);}
+  .mini{font-size:12px;font-weight:600;padding:7px 11px;border-radius:6px;border:1px solid var(--line);background:#fff;color:var(--ink);cursor:pointer;white-space:nowrap;text-decoration:none;display:inline-flex;align-items:center;}
+  .mini:hover{background:var(--bg-soft);}
+  .mini.save{background:var(--veg-red);border-color:var(--veg-red);color:#fff;}
+  .mini.save:hover{background:var(--veg-red-d);}
+  .mini.open{color:var(--veg-red);border-color:var(--veg-red);}
+  .mini.open:hover{background:#fbe9ea;}
+  .mini.del{color:#b51e22;border:none;padding:7px 6px;}
+  .mini.del:hover{background:#fbe9ea;}
+
+  .card.planned{border:1.5px dashed #ccc;box-shadow:none;background:var(--bg-soft);}
+  .card.planned .card-head{background:#9a9a9a;}
+  .card.planned .badge{background:#fff;color:#6b6b6b;}
+  .planned-note{color:var(--gray);font-size:13px;padding:22px 16px;text-align:center;}
+
+  /* custom modules */
+  .cm-list{display:flex;flex-direction:column;gap:10px;margin-bottom:14px;}
+  .cm-item{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:10px;padding:11px 14px;background:#fff;}
+  .cm-item .cm-name{font-weight:600;font-size:14px;flex:1;word-break:break-word;}
+  .cm-add{display:flex;gap:8px;flex-wrap:wrap;align-items:center;border:1.5px dashed var(--line);border-radius:10px;padding:12px 14px;background:var(--bg-soft);}
+  .cm-add input{font-family:inherit;font-size:13px;padding:8px 10px;border:1px solid var(--line);border-radius:6px;}
+  .cm-add .nm{width:180px;max-width:40vw;}
+  .cm-add .ur{flex:1;min-width:160px;}
+  .empty{color:var(--gray);font-size:13px;font-style:normal;}
+
+  .hint{font-size:12px;color:var(--gray);margin:24px 0 0;line-height:1.5;}
+  @media print{.btn,.mini,.lk-input,.cm-add{display:none;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <div>
+      <h1>Exotics ER — Program Tracker</h1>
+      <p class="sub">Build progress across every species course · rolls up automatically from each tracker</p>
+    </div>
+    <div class="topbtns">
+      <a class="btn primary" href="https://rise.articulate.com/manage/all-content" target="_blank" rel="noopener">Articulate Rise — All Content &#8599;</a>
+      <button class="btn" id="refresh">Refresh</button>
+    </div>
+  </div>
+
+  <div class="summary">
+    <div class="stat"><div class="num" id="s-courses">0</div><div class="lbl">Courses</div></div>
+    <div class="stat"><div class="num" id="s-active">0</div><div class="lbl">In development</div></div>
+    <div class="stat"><div class="num" id="s-planned">0</div><div class="lbl">To be developed</div></div>
+    <div class="stat"><div class="num" id="s-lessons">0</div><div class="lbl">Total lessons</div></div>
+    <div class="stat"><div class="num" id="s-hours">0</div><div class="lbl">Est. build hrs</div></div>
+    <div class="stat accent"><div class="num" id="s-overall">0%</div><div class="lbl">Overall build</div></div>
+  </div>
+
+  <div class="prog-wrap">
+    <div class="prog-label"><span>Program completion (time-weighted, all built courses)</span><span id="prog-text">0%</span></div>
+    <div class="progress"><div class="bar" id="prog-bar"></div></div>
+    <p class="prog-note">Effort model &mdash; per lesson: HTML 5h &middot; Review 1.5h &middot; Media 2h &middot; Final review 1.5h (10h).</p>
+  </div>
+
+  <div class="sec-title">Course modules</div>
+  <div class="grid" id="grid"></div>
+
+  <div class="sec-title">Other modules &amp; links</div>
+  <div class="cm-list" id="cm-list"></div>
+  <div class="cm-add">
+    <input class="nm" id="cm-name" type="text" placeholder="Module name (e.g. Sample Rise module)">
+    <input class="ur" id="cm-url" type="text" placeholder="Paste HTML / Rise link…">
+    <button class="btn primary" id="cm-add-btn">Add module</button>
+  </div>
+
+  <p class="hint" id="hint"></p>
+</div>
+
+<script>
+const COURSES = [{"slug": "chelonian", "name": "Chelonian", "sub": "Turtle & Tortoise", "file": "chelonian-er-tracker.html", "key": "chelonian_tracker_v1", "N": 31, "htmlDefaults": [1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0]}, {"slug": "avian", "name": "Avian", "sub": "Birds", "file": "avian-er-tracker.html", "key": "avian_tracker_v1", "N": 24, "htmlDefaults": [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1]}, {"slug": "guineapig", "mvp": true, "name": "Guinea Pig", "sub": "", "file": "guineapig-er-tracker.html", "key": "guineapig_tracker_v1", "N": 19}, {"slug": "ferret", "mvp": true, "name": "Ferret", "sub": "", "file": "ferret-er-tracker.html", "key": "ferret_tracker_v1", "N": 17}, {"slug": "rabbit", "mvp": true, "name": "Rabbit", "sub": "", "file": "rabbit-er-tracker.html", "key": "rabbit_tracker_v1", "N": 25}, {"slug": "beardeddragon", "mvp": true, "name": "Bearded Dragon", "sub": "Reptile", "file": "beardeddragon-er-tracker.html", "key": "beardeddragon_tracker_v1", "N": 19}, {"slug": "chicken", "name": "Chicken / Duck", "sub": "", "planned": true}, {"slug": "snake", "name": "Snake", "sub": "", "planned": true}, {"slug": "chinchilla", "name": "Chinchilla", "sub": "", "planned": true}];
+const COLS = ["html","review","media","final"];
+const COL_LABELS = {html:"HTML",review:"Review",media:"Media",final:"Final"};
+const STAGE_HOURS = {html:5, review:1.5, media:2, final:1.5};
+const LESSON_HOURS = COLS.reduce((s,c)=>s+STAGE_HOURS[c],0);
+function fmtH(h){ return (Math.round(h*10)/10).toString(); }
+const LINKS_KEY = "program_module_links_v1";
+const CUSTOM_KEY = "program_custom_modules_v1";
+const STATUS_KEY = "program_status_v1";
+
+function load(key,fallback){ try{ return JSON.parse(localStorage.getItem(key)) ?? fallback; }catch(e){ return fallback; } }
+function save(key,val){ try{ localStorage.setItem(key, JSON.stringify(val)); }catch(e){} }
+let links  = load(LINKS_KEY, {});
+let custom = load(CUSTOM_KEY, []);
+let statusSaved = load(STATUS_KEY, {});
+
+const STATUS_DEFS = [
+  {id:"inprogress", label:"In Progress", color:"#d98014"},
+  {id:"mvp",        label:"MVP",         color:"#2b6cb0"},
+  {id:"v1",         label:"V1",          color:"#4a7a36"},
+  {id:"v2",         label:"V2",          color:"#7a4ad6"},
+  {id:"v3",         label:"V3",          color:"#1f8a8a"},
+];
+function statusesFor(c){ return Object.prototype.hasOwnProperty.call(statusSaved,c.slug) ? (statusSaved[c.slug]||[]) : (c.mvp ? ["mvp"] : []); }
+function toggleStatus(c,id){ let a=statusesFor(c).slice(); const i=a.indexOf(id); if(i>=0)a.splice(i,1); else a.push(id); statusSaved[c.slug]=a; save(STATUS_KEY,statusSaved); renderCourses(); }
+function statusRow(c){
+  const sel=statusesFor(c);
+  const row=document.createElement("div"); row.className="status-row";
+  const lbl=document.createElement("span"); lbl.className="slbl"; lbl.textContent="Status"; row.appendChild(lbl);
+  STATUS_DEFS.forEach(s=>{
+    const on=sel.includes(s.id);
+    const chip=document.createElement("button"); chip.className="chip"+(on?" on":""); chip.textContent=s.label;
+    if(on){ chip.style.background=s.color; chip.style.borderColor=s.color; }
+    chip.onclick=()=>toggleStatus(c,s.id);
+    row.appendChild(chip);
+  });
+  return row;
+}
+
+function cleanUrl(u){ u=(u||"").trim(); if(!u) return ""; if(!/^https?:\/\//i.test(u)) u="https://"+u; return u; }
+function detectEntry(raw){
+  const t=(raw||"").trim();
+  if(!t) return null;
+  if(/<[a-z!\/][^>]*>/i.test(t)) return {kind:"html", value:t};
+  return {kind:"url", value:cleanUrl(t)};
+}
+function openHtmlBlob(html){
+  try{
+    const blob=new Blob([html],{type:"text/html"});
+    const url=URL.createObjectURL(blob);
+    const w=window.open(url,"_blank");
+    if(!w){ alert("Your browser blocked the new tab. Allow pop-ups for this page, or open this file as a download, then try again."); }
+    setTimeout(()=>URL.revokeObjectURL(url), 60000);
+  }catch(e){ alert("Couldn't open the HTML: "+e.message); }
+}
+function esc(s){ return (s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c])); }
+
+function progressFor(c){
+  if(c.planned) return null;
+  let saved={};
+  try{ saved=JSON.parse(localStorage.getItem(c.key)||"{}"); }catch(e){ saved={}; }
+  const defaults = c.htmlDefaults || new Array(c.N).fill(0);
+  const stage={html:0,review:0,media:0,final:0};
+  for(let i=0;i<c.N;i++){
+    const id="L"+i;
+    COLS.forEach(col=>{
+      const k=id+":"+col;
+      let v = Object.prototype.hasOwnProperty.call(saved,k) ? saved[k] : (col==="html" ? !!defaults[i] : false);
+      if(v) stage[col]++;
+    });
+  }
+  const checks = stage.html+stage.review+stage.media+stage.final;
+  let v2=0; for(let i=0;i<c.N;i++){ if(saved["L"+i+":v2"]===true) v2++; }
+  const doneHours = COLS.reduce((s,col)=>s+stage[col]*STAGE_HOURS[col],0);
+  const totalHours = c.N*LESSON_HOURS;
+  const overall = totalHours ? doneHours/totalHours*100 : 0;
+  return {N:c.N, stage, checks, v2, doneHours, totalHours, overall};
+}
+function statusFor(c,p){
+  if(c.planned) return {label:"To be developed", cls:"planned"};
+  if(p.overall<=0) return {label:"Not started", cls:"notstarted"};
+  if(p.overall>=100) return {label:"Complete", cls:"complete"};
+  return {label:"In progress", cls:""};
+}
+
+// build the editable link control for a course slug
+function linkEntry(slug){ let e=links[slug]; if(typeof e==="string") e={kind:"url",value:e}; return e; }
+function linkControl(slug){
+  const wrap=document.createElement("div");
+  const label=document.createElement("div"); label.className="lk-label"; label.textContent="Module / HTML link";
+  const row=document.createElement("div"); row.className="lk-row";
+
+  function showView(){
+    row.innerHTML="";
+    const e=linkEntry(slug);
+    if(e.kind==="html"){
+      const b=document.createElement("button"); b.className="mini open"; b.textContent="Open HTML \u2197"; b.onclick=()=>openHtmlBlob(e.value);
+      const tag=document.createElement("span"); tag.className="lk-tag"; tag.textContent="HTML \u00b7 "+e.value.length.toLocaleString()+" chars";
+      row.appendChild(b); row.appendChild(tag);
+    } else {
+      const a=document.createElement("a"); a.className="mini open"; a.href=e.value; a.target="_blank"; a.rel="noopener"; a.textContent="Open link \u2197"; a.title=e.value;
+      row.appendChild(a);
+    }
+    const edit=document.createElement("button"); edit.className="mini"; edit.textContent="Edit"; edit.onclick=showEdit;
+    row.appendChild(edit);
+  }
+  function showEdit(){
+    row.innerHTML="";
+    const ta=document.createElement("textarea"); ta.className="lk-input"; ta.rows=1; ta.placeholder="Paste a link \u2014 or paste raw HTML code\u2026";
+    const cur=linkEntry(slug); ta.value=cur?cur.value:"";
+    function grow(){ ta.style.height="auto"; ta.style.height=Math.min(ta.scrollHeight,200)+"px"; }
+    ta.addEventListener("input",grow);
+    const sv=document.createElement("button"); sv.className="mini save"; sv.textContent="Save";
+    sv.onclick=()=>{ const d=detectEntry(ta.value); if(d){ links[slug]=d; } else { delete links[slug]; } save(LINKS_KEY,links); rebuild(); };
+    ta.addEventListener("keydown",e=>{ if(e.key==="Enter" && !e.shiftKey){ e.preventDefault(); sv.onclick(); } });
+    row.appendChild(ta); row.appendChild(sv);
+    if(links[slug]){ const cl=document.createElement("button"); cl.className="mini del"; cl.textContent="Clear"; cl.onclick=()=>{ delete links[slug]; save(LINKS_KEY,links); rebuild(); }; row.appendChild(cl); }
+    ta.focus(); grow();
+  }
+  function rebuild(){ if(links[slug]) showView(); else showEdit(); }
+  rebuild();
+  wrap.appendChild(label); wrap.appendChild(row);
+  return wrap;
+}
+
+const grid = document.getElementById("grid");
+
+function renderCourses(){
+  grid.innerHTML="";
+  let totLessons=0, totDoneH=0, totH=0, active=0, planned=0;
+
+  COURSES.forEach(c=>{
+    const p = progressFor(c);
+    const sel = statusesFor(c);
+    const isMvp = sel.includes("mvp");
+    const card=document.createElement("div");
+    card.className="card"+(c.planned?" planned":" active")+(isMvp?" mvp":"");
+
+    const head=document.createElement("div"); head.className="card-head";
+    if(isMvp) head.style.background="#2b6cb0";
+    head.innerHTML=`<div><div class="name">${esc(c.name)}</div>${c.sub?`<div class="csub">${esc(c.sub)}</div>`:""}</div>`;
+    card.appendChild(head);
+    card.appendChild(statusRow(c));
+
+    if(c.planned){
+      planned++;
+      const note=document.createElement("div"); note.className="planned-note"; note.textContent="Course not built yet — planned for development.";
+      card.appendChild(note);
+      const foot=document.createElement("div"); foot.className="card-foot"; foot.appendChild(linkControl(c.slug));
+      card.appendChild(foot);
+    } else {
+      active++;
+      totLessons+=p.N; totDoneH+=p.doneHours; totH+=p.totalHours;
+      const ov=Math.round(p.overall);
+      const body=document.createElement("div"); body.className="card-body";
+      const stageRows=COLS.map(col=>{
+        const v=p.stage[col], pc=p.N?(v/p.N*100):0;
+        return `<div class="srow"><span class="sl">${COL_LABELS[col]}</span><span class="sb"><span class="f" style="width:${pc}%"></span></span><span class="sn">${v}/${p.N}</span></div>`;
+      }).join("");
+      const v2line = `<div class="v2line">V2 dev: ${p.v2} / ${p.N}</div>`;
+      body.innerHTML=`<div class="meta">${p.N} lessons \u00b7 ${fmtH(p.totalHours)} hrs est.</div>
+        <div class="overall"><span class="pct">${ov}%</span><span class="pl">overall</span></div>
+        <div class="obar"><span class="b ${ov>=100?'done':''}" style="width:${ov}%"></span></div>
+        <div class="stages">${stageRows}</div>${v2line}`;
+      card.appendChild(body);
+
+      const foot=document.createElement("div"); foot.className="card-foot";
+      const tl=document.createElement("a"); tl.className="foot-link"; tl.href=c.file;
+      tl.innerHTML=`<span>Open build tracker</span><span>&rarr;</span>`;
+      foot.appendChild(tl);
+      foot.appendChild(linkControl(c.slug));
+      card.appendChild(foot);
+
+      // make the header + body open the tracker too (status row stays interactive)
+      [head, body].forEach(el=>{ el.classList.add("nav"); el.addEventListener("click", ()=>{ window.location.href=c.file; }); });
+    }
+    grid.appendChild(card);
+  });
+
+  const overallPct = totH ? Math.round(totDoneH/totH*100) : 0;
+  document.getElementById("s-courses").textContent=COURSES.length;
+  document.getElementById("s-active").textContent=active;
+  document.getElementById("s-planned").textContent=planned;
+  document.getElementById("s-lessons").textContent=totLessons;
+  document.getElementById("s-hours").textContent=fmtH(totH);
+  document.getElementById("s-overall").textContent=overallPct+"%";
+  document.getElementById("prog-text").textContent=`${overallPct}% \u00b7 ${fmtH(totDoneH)} / ${fmtH(totH)} hrs`;
+  document.getElementById("prog-bar").style.width=overallPct+"%";
+}
+
+const cmList=document.getElementById("cm-list");
+function renderCustom(){
+  cmList.innerHTML="";
+  if(!custom.length){ const e=document.createElement("div"); e.className="empty"; e.textContent="No extra modules yet. Add one below — handy for sample/example Rise modules or shared resources."; cmList.appendChild(e); return; }
+  custom.forEach(m=>{
+    const kind = m.kind || "url";
+    const value = (m.value!==undefined && m.value!==null) ? m.value : (m.url||"");
+    const item=document.createElement("div"); item.className="cm-item";
+    const nm=document.createElement("div"); nm.className="cm-name"; nm.textContent=m.name||"(untitled)";
+    let open;
+    if(kind==="html"){
+      open=document.createElement("button"); open.className="mini open"; open.textContent="Open HTML \u2197"; open.onclick=()=>openHtmlBlob(value);
+    } else {
+      open=document.createElement("a"); open.className="mini open"; open.href=value; open.target="_blank"; open.rel="noopener"; open.textContent="Open link \u2197"; open.title=value;
+    }
+    const del=document.createElement("button"); del.className="mini del"; del.textContent="Delete";
+    del.onclick=()=>{ custom=custom.filter(x=>x.id!==m.id); save(CUSTOM_KEY,custom); renderCustom(); };
+    item.appendChild(nm); item.appendChild(open); item.appendChild(del);
+    cmList.appendChild(item);
+  });
+}
+document.getElementById("cm-add-btn").onclick=()=>{
+  const nm=document.getElementById("cm-name"), ur=document.getElementById("cm-url");
+  const name=(nm.value||"").trim(), d=detectEntry(ur.value);
+  if(!name && !d) return;
+  custom.push({id:Date.now()+"_"+Math.random().toString(36).slice(2,7), name:name||"(untitled)", kind:d?d.kind:"url", value:d?d.value:""});
+  save(CUSTOM_KEY,custom); nm.value=""; ur.value=""; renderCustom();
+};
+document.getElementById("cm-url").addEventListener("keydown",e=>{ if(e.key==="Enter") document.getElementById("cm-add-btn").onclick(); });
+
+function renderAll(){ renderCourses(); }
+renderAll(); renderCustom();
+document.getElementById("refresh").addEventListener("click", renderAll);
+window.addEventListener("storage", ()=>{ links=load(LINKS_KEY,{}); custom=load(CUSTOM_KEY,[]); statusSaved=load(STATUS_KEY,{}); renderAll(); renderCustom(); });
+document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) renderAll(); });
+
+document.getElementById("hint").textContent =
+  "Module links and extra modules are saved in this browser. Live progress roll-up reads each tracker's saved state, which works when all files are served from the same place (hosted, or via a local web server such as python3 -m http.server). Opened as separate file:// files, some browsers isolate storage, so progress and saved links may not persist across files until hosted.";
+</script>
+</body>
+</html>
